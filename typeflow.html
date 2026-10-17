@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TypeFlow - 中英打字练习</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --text: #1d1d1f;
+  --text-secondary: #86868b;
+  --text-tertiary: #aeaeb2;
+  --border: #e5e5ea;
+  --primary: #007AFF;
+  --primary-bg: rgba(0,122,255,0.1);
+  --correct: #34C759;
+  --error: #FF3B30;
+  --shadow: 0 4px 20px rgba(0,0,0,0.05);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.12);
+  --radius: 20px;
+  --radius-sm: 12px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --overlay-bg: rgba(255,255,255,0.7);
+}
+.dark {
+  --bg: #1c1c1e;
+  --card-bg: #2c2c2e;
+  --text: #f5f5f7;
+  --text-secondary: #98989d;
+  --text-tertiary: #636366;
+  --border: #38383a;
+  --primary-bg: rgba(0,122,255,0.2);
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
+  --overlay-bg: rgba(28,28,30,0.7);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px}
+body{
+  font-family:var(--font-stack);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+  transition:background var(--transition),color var(--transition);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.app-container{width:100%;max-width:800px;display:flex;flex-direction:column;gap:16px}
+.header{text-align:center;padding:10px 0 0}
+.logo{font-size:2rem;font-weight:700;letter-spacing:-0.5px;color:var(--text);transition:color var(--transition)}
+.logo-dot{color:var(--primary)}
+.subtitle{font-size:0.9rem;color:var(--text-secondary);margin-top:2px;font-weight:400;transition:color var(--transition)}
+.header-top{display:flex;align-items:center;justify-content:center;gap:16px;position:relative}
+.dark-toggle{
+  position:absolute;right:0;
+  background:var(--card-bg);border:1px solid var(--border);
+  border-radius:50%;width:40px;height:40px;font-size:1.2rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--transition);box-shadow:var(--shadow);
+}
+.dark-toggle:hover{transform:scale(1.05)}
+.lang-toggle{
+  display:flex;background:var(--card-bg);border-radius:12px;padding:4px;
+  box-shadow:var(--shadow);transition:background var(--transition),box-shadow var(--transition);
+  user-select:none;max-width:200px;margin:0 auto;
+}
+.lang-item{
+  flex:1;text-align:center;padding:8px 16px;font-size:0.85rem;font-weight:500;
+  color:var(--text-secondary);border-radius:10px;cursor:pointer;
+  transition:all 0.25s cubic-bezier(0.4,0,0.2,1);white-space:nowrap;
+}
+.lang-item.active{background:var(--primary-bg);color:var(--primary);font-weight:600}
+.lang-item:hover:not(.active){color:var(--text)}
+.segment-control{
+  display:flex;background:var(--card-bg);border-radius:12px;padding:4px;
+  box-shadow:var(--shadow);transition:background var(--transition),box-shadow var(--transition);user-select:none;
+}
+.segment-item{
+  flex:1;text-align:center;padding:10px 16px;font-size:0.9rem;font-weight:500;
+  color:var(--text-secondary);border-radius:10px;cursor:pointer;
+  transition:all 0.25s cubic-bezier(0.4,0,0.2,1);white-space:nowrap;
+}
+.segment-item.active{background:var(--primary-bg);color:var(--primary);font-weight:600}
+.segment-item:hover:not(.active){color:var(--text)}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat-card{
+  background:var(--card-bg);border-radius:var(--radius-sm);padding:16px 12px;
+  text-align:center;box-shadow:var(--shadow);transition:all var(--transition);
+}
+.stat-value{font-size:1.5rem;font-weight:700;letter-spacing:-0.5px;font-variant-numeric:tabular-nums}
+.stat-value.time{color:var(--text)}
+.stat-value.wpm{color:var(--primary)}
+.stat-value.accuracy{color:var(--correct)}
+.stat-value.progress{color:var(--text-secondary)}
+.stat-label{font-size:0.75rem;color:var(--text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+.progress-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;transition:background var(--transition)}
+.progress-bar-fill{height:100%;background:var(--primary);border-radius:3px;transition:width 0.2s ease;width:0%}
+.typing-card{
+  background:var(--card-bg);border-radius:var(--radius);padding:28px 24px;
+  box-shadow:var(--shadow);transition:all var(--transition);min-height:160px;
+  position:relative;cursor:text;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.typing-text{
+  font-size:1.35rem;line-height:1.8;letter-spacing:0.3px;
+  word-break:break-word;user-select:none;transition:color var(--transition);
+  position:relative;z-index:2;pointer-events:none;
+}
+.char{position:relative;display:inline;transition:color 0.1s ease}
+.char.correct{color:var(--correct)}
+.char.error{color:var(--error);text-decoration:underline;text-decoration-color:var(--error);text-underline-offset:3px}
+.char.current{
+  background:var(--primary);color:#fff;border-radius:3px;padding:0 1px;
+  animation:blink-caret 1s step-end infinite;
+}
+.char.pending{color:var(--text-tertiary)}
+@keyframes blink-caret{0%,100%{opacity:1}50%{opacity:0.6}}
+
+/* Invisible textarea: positioned over the card, fully transparent but interactive */
+#hiddenInput{
+  position:absolute;left:0;top:0;width:100%;height:100%;
+  opacity:0;z-index:3;cursor:text;
+  font-size:16px;line-height:1.8;padding:28px 24px;
+  border:none;outline:none;resize:none;
+  background:transparent;color:transparent;caret-color:transparent;
+  -webkit-appearance:none;-webkit-user-select:text;user-select:text;
+}
+#hiddenInput::selection{background:transparent;color:transparent}
+
+.translation-area{
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--border);
+  font-size:0.9rem;color:var(--text-secondary);line-height:1.6;
+  transition:all var(--transition);display:none;position:relative;z-index:2;pointer-events:none;
+}
+.translation-area.visible{display:block}
+.translation-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-tertiary);margin-bottom:4px;font-weight:500}
+.ime-hint{
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  font-size:0.75rem;color:var(--primary);opacity:0;
+  transition:opacity 0.2s ease;pointer-events:none;white-space:nowrap;z-index:2;
+}
+.ime-hint.visible{opacity:1}
+.focus-hint{
+  text-align:center;color:var(--text-tertiary);font-size:0.85rem;
+  margin-top:12px;transition:opacity 0.3s ease;user-select:none;
+  position:relative;z-index:2;pointer-events:none;
+}
+
+/* Virtual Keyboard */
+.keyboard-wrap{transition:opacity 0.3s ease,max-height 0.3s ease;overflow:hidden}
+.keyboard-wrap.hidden{opacity:0;max-height:0;margin:0;pointer-events:none}
+.keyboard{display:flex;flex-direction:column;gap:6px;user-select:none}
+.keyboard-row{display:flex;justify-content:center;gap:5px}
+.key{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:8px;
+  min-width:38px;height:44px;display:flex;align-items:center;justify-content:center;
+  font-size:0.8rem;font-weight:500;color:var(--text);text-transform:uppercase;
+  transition:all 0.08s ease;box-shadow:0 2px 0 rgba(0,0,0,0.06);
+  cursor:default;position:relative;
+}
+.key.wide{min-width:56px}.key.wider{min-width:72px}.key.space-bar{min-width:260px}
+.key.pressed{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,0)}
+.key.hit-correct{background:var(--correct);border-color:var(--correct);color:#fff;box-shadow:0 0 12px rgba(52,199,89,0.5);transform:scale(0.95)}
+.key.hit-error{background:var(--error);border-color:var(--error);color:#fff;box-shadow:0 0 12px rgba(255,59,48,0.5);animation:shake 0.3s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+/* Overlay */
+.overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;opacity:0;pointer-events:none;transition:opacity 0.4s ease;
+}
+.overlay.show{opacity:1;pointer-events:all}
+.overlay-bg{position:absolute;inset:0;background:rgba(0,0,0,0.35)}
+.overlay-panel{
+  position:relative;background:var(--overlay-bg);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-radius:var(--radius);padding:40px 36px;max-width:420px;width:90%;
+  text-align:center;box-shadow:var(--shadow-lg);border:1px solid var(--border);
+  transform:translateY(20px) scale(0.95);
+  transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+.overlay.show .overlay-panel{transform:translateY(0) scale(1)}
+.overlay-title{font-size:1.6rem;font-weight:700;margin-bottom:24px}
+.overlay-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+.overlay-stat-val{font-size:2rem;font-weight:700;letter-spacing:-0.5px}
+.overlay-stat-label{font-size:0.8rem;color:var(--text-secondary);margin-top:2px;text-transform:uppercase;font-weight:500}
+.btn{
+  display:inline-block;background:var(--primary);color:#fff;border:none;
+  border-radius:25px;padding:12px 32px;font-size:1rem;font-weight:600;
+  cursor:pointer;transition:all var(--transition);font-family:var(--font-stack);
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,122,255,0.35)}
+.btn:active{transform:scale(0.97)}
+.btn-secondary{background:transparent;color:var(--primary);border:1.5px solid var(--primary);margin-left:10px}
+.btn-secondary:hover{background:var(--primary-bg);box-shadow:none}
+.best-record{font-size:0.8rem;color:var(--text-secondary);margin-top:12px;opacity:0.8}
+.best-record span{color:var(--primary);font-weight:600}
+
+@media(max-width:600px){
+  body{padding:12px}
+  .app-container{gap:12px}
+  .logo{font-size:1.5rem}
+  .stats-bar{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat-card{padding:12px 8px}
+  .stat-value{font-size:1.3rem}
+  .typing-text{font-size:1.1rem}
+  .key{min-width:26px;height:36px;font-size:0.65rem;border-radius:6px}
+  .key.wide{min-width:40px}.key.wider{min-width:52px}.key.space-bar{min-width:140px}
+  .keyboard-row{gap:3px}.keyboard{gap:4px}
+  .overlay-panel{padding:28px 20px}.overlay-stats{gap:10px}.overlay-stat-val{font-size:1.5rem}
+  .segment-item{padding:8px 10px;font-size:0.8rem}
+  .lang-item{padding:6px 12px;font-size:0.78rem}
+}
+@media(max-width:400px){
+  .key{min-width:22px;height:30px;font-size:0.55rem;border-radius:4px}
+  .key.wide{min-width:32px}.key.wider{min-width:44px}.key.space-bar{min-width:100px}
+  .keyboard-row{gap:2px}.keyboard{gap:3px}
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="header">
+    <div class="header-top">
+      <button class="dark-toggle" id="darkToggle" title="切换深色模式">🌙</button>
+      <div>
+        <div class="logo">Type<span class="logo-dot">F</span>low</div>
+        <div class="subtitle">流畅打字 · 从指尖开始</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lang-toggle" id="langToggle">
+    <div class="lang-item active" data-lang="en">EN 英语</div>
+    <div class="lang-item" data-lang="zh">中文</div>
+  </div>
+
+  <div class="segment-control" id="segmentControl">
+    <div class="segment-item active" data-mode="words">单词</div>
+    <div class="segment-item" data-mode="sentences">句子</div>
+    <div class="segment-item" data-mode="passages">文章</div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-value time" id="timer">0s</div><div class="stat-label">用时</div></div>
+    <div class="stat-card"><div class="stat-value wpm" id="wpm">0</div><div class="stat-label" id="speedLabel">WPM</div></div>
+    <div class="stat-card"><div class="stat-value accuracy" id="accuracy">100%</div><div class="stat-label">准确率</div></div>
+    <div class="stat-card"><div class="stat-value progress" id="progressPct">0%</div><div class="stat-label">进度</div></div>
+  </div>
+
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar"></div></div>
+
+  <div class="typing-card" id="typingCard">
+    <div class="typing-text" id="typingText"></div>
+    <div class="translation-area" id="translationArea"></div>
+    <textarea id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" rows="1"></textarea>
+    <div class="ime-hint" id="imeHint">正在输入中文…</div>
+    <div class="focus-hint" id="focusHint">点击此处或按任意键开始 ⌨️</div>
+  </div>
+
+  <div class="keyboard-wrap" id="keyboardWrap">
+    <div class="keyboard" id="keyboard"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-bg" id="overlayBg"></div>
+  <div class="overlay-panel">
+    <div class="overlay-title">🎉 练习完成</div>
+    <div class="overlay-stats">
+      <div><div class="overlay-stat-val" id="finalTime">0s</div><div class="overlay-stat-label">用时</div></div>
+      <div><div class="overlay-stat-val" id="finalWpm" style="color:var(--primary)">0</div><div class="overlay-stat-label" id="finalSpeedLabel">WPM</div></div>
+      <div><div class="overlay-stat-val" id="finalAccuracy" style="color:var(--correct)">100%</div><div class="overlay-stat-label">准确率</div></div>
+    </div>
+    <div class="best-record" id="bestRecord"></div>
+    <div style="margin-top:24px;">
+      <button class="btn" id="retryBtn">再来一次</button>
+      <button class="btn btn-secondary" id="changeModeBtn">切换模式</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   TypeFlow — Chinese & English Typing Practice
+   ================================================================ */
+
+/* ---------- DATA: ENGLISH ---------- */
+
+const EN_WORD_BANK = [
+  {en:"the",zh:"这/那"},{en:"be",zh:"是"},{en:"to",zh:"到"},{en:"of",zh:"…的"},{en:"and",zh:"和"},{en:"in",zh:"在…里"},{en:"that",zh:"那"},{en:"have",zh:"有"},{en:"it",zh:"它"},{en:"for",zh:"为了"},{en:"not",zh:"不"},{en:"on",zh:"在…上"},{en:"with",zh:"用"},{en:"he",zh:"他"},{en:"as",zh:"作为"},{en:"you",zh:"你"},{en:"do",zh:"做"},{en:"at",zh:"在"},{en:"this",zh:"这"},{en:"but",zh:"但是"},
+  {en:"his",zh:"他的"},{en:"by",zh:"由"},{en:"from",zh:"从"},{en:"they",zh:"他们"},{en:"we",zh:"我们"},{en:"say",zh:"说"},{en:"her",zh:"她的"},{en:"she",zh:"她"},{en:"or",zh:"或者"},{en:"an",zh:"一个"},{en:"will",zh:"将会"},{en:"my",zh:"我的"},{en:"one",zh:"一"},{en:"all",zh:"所有"},{en:"would",zh:"将会"},{en:"there",zh:"那里"},{en:"their",zh:"他们的"},{en:"what",zh:"什么"},
+  {en:"so",zh:"所以"},{en:"up",zh:"向上"},{en:"out",zh:"出去"},{en:"if",zh:"如果"},{en:"about",zh:"关于"},{en:"who",zh:"谁"},{en:"get",zh:"得到"},{en:"which",zh:"哪个"},{en:"go",zh:"去"},{en:"me",zh:"我"},{en:"when",zh:"何时"},{en:"make",zh:"制作"},{en:"can",zh:"能"},{en:"like",zh:"喜欢"},{en:"time",zh:"时间"},{en:"no",zh:"不"},{en:"just",zh:"只是"},{en:"him",zh:"他"},
+  {en:"know",zh:"知道"},{en:"take",zh:"拿取"},{en:"people",zh:"人们"},{en:"into",zh:"进入"},{en:"year",zh:"年"},{en:"your",zh:"你的"},{en:"good",zh:"好的"},{en:"some",zh:"一些"},{en:"could",zh:"可以"},{en:"them",zh:"他们"},{en:"see",zh:"看见"},{en:"other",zh:"其他"},{en:"than",zh:"比"},{en:"then",zh:"然后"},{en:"now",zh:"现在"},{en:"look",zh:"看"},
+  {en:"only",zh:"只有"},{en:"come",zh:"来"},{en:"its",zh:"它的"},{en:"over",zh:"超过"},{en:"think",zh:"思考"},{en:"also",zh:"也"},{en:"back",zh:"回来"},{en:"after",zh:"之后"},{en:"use",zh:"使用"},{en:"two",zh:"二"},{en:"how",zh:"怎样"},{en:"our",zh:"我们的"},{en:"work",zh:"工作"},{en:"first",zh:"第一"},{en:"well",zh:"好地"},{en:"way",zh:"方式"},{en:"even",zh:"甚至"},
+  {en:"new",zh:"新的"},{en:"want",zh:"想要"},{en:"because",zh:"因为"},{en:"any",zh:"任何"},{en:"these",zh:"这些"},{en:"give",zh:"给予"},{en:"day",zh:"天"},{en:"most",zh:"最多"},{en:"us",zh:"我们"},{en:"great",zh:"伟大的"},{en:"big",zh:"大的"},{en:"help",zh:"帮助"},{en:"world",zh:"世界"},{en:"life",zh:"生活"},{en:"hand",zh:"手"},{en:"part",zh:"部分"},
+  {en:"child",zh:"孩子"},{en:"eye",zh:"眼睛"},{en:"woman",zh:"女人"},{en:"place",zh:"地方"},{en:"week",zh:"星期"},{en:"case",zh:"情况"},{en:"point",zh:"点"},{en:"group",zh:"群组"},{en:"number",zh:"数字"},{en:"small",zh:"小的"},{en:"night",zh:"夜晚"},{en:"water",zh:"水"},{en:"round",zh:"圆的"},{en:"city",zh:"城市"},
+  {en:"tree",zh:"树"},{en:"cross",zh:"穿过"},{en:"farm",zh:"农场"},{en:"hard",zh:"困难的"},{en:"start",zh:"开始"},{en:"might",zh:"可能"},{en:"story",zh:"故事"},{en:"saw",zh:"看见"},{en:"far",zh:"远的"},{en:"sea",zh:"海"},{en:"draw",zh:"画"},{en:"left",zh:"左边"},{en:"late",zh:"迟的"},{en:"run",zh:"跑"},{en:"while",zh:"当…时"},
+  {en:"press",zh:"按压"},{en:"close",zh:"关闭"},{en:"real",zh:"真实的"},{en:"gold",zh:"金子"},{en:"paper",zh:"纸"},{en:"read",zh:"阅读"},{en:"need",zh:"需要"},{en:"land",zh:"土地"},{en:"home",zh:"家"},{en:"large",zh:"大的"},{en:"rock",zh:"岩石"},{en:"space",zh:"空间"},{en:"change",zh:"改变"},{en:"kind",zh:"种类"},
+  {en:"plant",zh:"植物"},{en:"cover",zh:"覆盖"},{en:"money",zh:"钱"},{en:"light",zh:"光"},{en:"sun",zh:"太阳"},{en:"music",zh:"音乐"},{en:"table",zh:"桌子"},{en:"wind",zh:"风"},{en:"door",zh:"门"},{en:"bird",zh:"鸟"},{en:"wood",zh:"木头"},{en:"color",zh:"颜色"},{en:"face",zh:"脸"},
+  {en:"main",zh:"主要的"},{en:"enough",zh:"足够的"},{en:"plain",zh:"平原"},{en:"girl",zh:"女孩"},{en:"usual",zh:"通常的"},{en:"young",zh:"年轻的"},{en:"ready",zh:"准备好"},{en:"above",zh:"在…上"},{en:"ever",zh:"曾经"},{en:"red",zh:"红色"},{en:"list",zh:"列表"},{en:"though",zh:"虽然"},{en:"feel",zh:"感觉"},{en:"talk",zh:"说话"},
+  {en:"soon",zh:"不久"},{en:"body",zh:"身体"},{en:"dog",zh:"狗"},{en:"family",zh:"家庭"},{en:"direct",zh:"直接的"},{en:"pose",zh:"姿势"},{en:"leave",zh:"离开"},{en:"song",zh:"歌曲"},{en:"measure",zh:"测量"},{en:"product",zh:"产品"},{en:"black",zh:"黑色"},
+  {en:"short",zh:"短的"},{en:"class",zh:"班级"},{en:"question",zh:"问题"},{en:"happen",zh:"发生"},{en:"complete",zh:"完成"},{en:"ship",zh:"船"},{en:"area",zh:"区域"},{en:"half",zh:"一半"},{en:"order",zh:"顺序"},{en:"fire",zh:"火"},{en:"south",zh:"南方"},
+  {en:"problem",zh:"问题"},{en:"piece",zh:"片"},{en:"told",zh:"告诉"},{en:"knew",zh:"知道"},{en:"pass",zh:"通过"},{en:"since",zh:"自从"},{en:"top",zh:"顶部"},{en:"whole",zh:"整个"},{en:"king",zh:"国王"},{en:"heard",zh:"听到"},{en:"best",zh:"最好的"},{en:"hour",zh:"小时"},
+  {en:"better",zh:"更好"},{en:"true",zh:"真实的"},{en:"during",zh:"在…期间"},{en:"hundred",zh:"百"},{en:"remember",zh:"记住"},{en:"step",zh:"步骤"},{en:"early",zh:"早的"},{en:"hold",zh:"握住"},{en:"west",zh:"西方"},{en:"ground",zh:"地面"},{en:"interest",zh:"兴趣"},{en:"reach",zh:"到达"},
+  {en:"fast",zh:"快的"},{en:"verb",zh:"动词"},{en:"sing",zh:"唱歌"},{en:"listen",zh:"听"},{en:"travel",zh:"旅行"},{en:"less",zh:"更少"},{en:"morning",zh:"早晨"},{en:"simple",zh:"简单的"},{en:"several",zh:"几个"},{en:"toward",zh:"朝向"},{en:"war",zh:"战争"},{en:"lay",zh:"放置"},
+  {en:"pattern",zh:"模式"},{en:"slow",zh:"慢的"},{en:"center",zh:"中心"},{en:"love",zh:"爱"},{en:"person",zh:"人"},{en:"serve",zh:"服务"},{en:"appear",zh:"出现"},{en:"road",zh:"路"},{en:"map",zh:"地图"},{en:"rain",zh:"雨"},{en:"rule",zh:"规则"},
+  {en:"pull",zh:"拉"},{en:"cold",zh:"冷的"},{en:"notice",zh:"注意"},{en:"voice",zh:"声音"},{en:"unit",zh:"单位"},{en:"power",zh:"力量"},{en:"town",zh:"城镇"},{en:"fine",zh:"好的"},{en:"certain",zh:"确定的"},{en:"fly",zh:"飞"},{en:"fall",zh:"落下"},{en:"lead",zh:"领导"},{en:"cry",zh:"哭"},{en:"dark",zh:"黑暗"},
+  {en:"machine",zh:"机器"},{en:"note",zh:"笔记"},{en:"wait",zh:"等待"},{en:"plan",zh:"计划"},{en:"figure",zh:"图形"},{en:"star",zh:"星星"},{en:"box",zh:"盒子"},{en:"field",zh:"领域"},{en:"rest",zh:"休息"},{en:"correct",zh:"正确的"},{en:"able",zh:"能够"},
+  {en:"beauty",zh:"美丽"},{en:"drive",zh:"驾驶"},{en:"stood",zh:"站立"},{en:"contain",zh:"包含"},{en:"front",zh:"前面"},{en:"teach",zh:"教"},{en:"final",zh:"最终的"},{en:"gave",zh:"给予"},{en:"green",zh:"绿色"},{en:"quick",zh:"快的"},
+  {en:"ocean",zh:"海洋"},{en:"warm",zh:"温暖的"},{en:"free",zh:"自由的"},{en:"minute",zh:"分钟"},{en:"strong",zh:"强壮的"},{en:"special",zh:"特别的"},{en:"mind",zh:"思想"},{en:"behind",zh:"在后面"},{en:"clear",zh:"清楚的"},{en:"tail",zh:"尾巴"},{en:"produce",zh:"生产"},{en:"fact",zh:"事实"},
+  {en:"street",zh:"街道"},{en:"inch",zh:"英寸"},{en:"nothing",zh:"没有什么"},{en:"course",zh:"课程"},{en:"stay",zh:"停留"},{en:"wheel",zh:"轮子"},{en:"full",zh:"满的"},{en:"force",zh:"力量"},{en:"blue",zh:"蓝色"},{en:"object",zh:"物体"},{en:"decide",zh:"决定"},
+  {en:"surface",zh:"表面"},{en:"deep",zh:"深的"},{en:"moon",zh:"月亮"},{en:"island",zh:"岛屿"},{en:"foot",zh:"脚"},{en:"system",zh:"系统"},{en:"busy",zh:"忙碌的"},{en:"test",zh:"测试"},{en:"record",zh:"记录"},{en:"boat",zh:"船"},{en:"common",zh:"普通的"},
+  {en:"possible",zh:"可能的"},{en:"plane",zh:"飞机"},{en:"dry",zh:"干的"},{en:"wonder",zh:"想知道"},{en:"laugh",zh:"笑"},{en:"thousand",zh:"千"},{en:"check",zh:"检查"},{en:"game",zh:"游戏"},{en:"shape",zh:"形状"},
+  {en:"hot",zh:"热的"},{en:"miss",zh:"想念"},{en:"brought",zh:"带来"},{en:"heat",zh:"热"},{en:"snow",zh:"雪"},{en:"bring",zh:"带来"},{en:"yes",zh:"是的"},{en:"distant",zh:"遥远的"},{en:"fill",zh:"填满"},{en:"east",zh:"东方"},{en:"paint",zh:"绘画"},{en:"language",zh:"语言"},
+  {en:"among",zh:"在…之中"},{en:"grand",zh:"宏大的"},{en:"ball",zh:"球"},{en:"wave",zh:"波浪"},{en:"drop",zh:"滴落"},{en:"heart",zh:"心"},{en:"present",zh:"现在的"},{en:"heavy",zh:"重的"},{en:"dance",zh:"跳舞"},{en:"engine",zh:"引擎"},{en:"position",zh:"位置"},{en:"arm",zh:"手臂"},
+  {en:"wide",zh:"宽的"},{en:"sail",zh:"航行"},{en:"material",zh:"材料"},{en:"size",zh:"尺寸"},{en:"vary",zh:"变化"},{en:"settle",zh:"定居"},{en:"speak",zh:"说话"},{en:"weight",zh:"重量"},{en:"general",zh:"一般的"},{en:"ice",zh:"冰"},{en:"matter",zh:"事情"},{en:"circle",zh:"圆"},
+  {en:"pair",zh:"一对"},{en:"include",zh:"包括"},{en:"divide",zh:"分开"},{en:"felt",zh:"感觉"},{en:"perhaps",zh:"也许"},{en:"pick",zh:"挑选"},{en:"sudden",zh:"突然的"},{en:"count",zh:"计数"},{en:"square",zh:"正方形"},{en:"reason",zh:"理由"},
+  {en:"length",zh:"长度"},{en:"represent",zh:"代表"},{en:"art",zh:"艺术"},{en:"subject",zh:"主题"},{en:"region",zh:"地区"},{en:"energy",zh:"能量"},{en:"hunt",zh:"打猎"},{en:"bed",zh:"床"},{en:"brother",zh:"兄弟"},{en:"egg",zh:"蛋"},
+  {en:"ride",zh:"骑"},{en:"cell",zh:"细胞"},{en:"believe",zh:"相信"},{en:"forest",zh:"森林"},{en:"race",zh:"比赛"},{en:"window",zh:"窗户"},{en:"store",zh:"商店"},{en:"summer",zh:"夏天"},{en:"train",zh:"火车"},{en:"sleep",zh:"睡觉"},{en:"prove",zh:"证明"},
+  {en:"leg",zh:"腿"},{en:"exercise",zh:"锻炼"},{en:"wall",zh:"墙"},{en:"catch",zh:"抓住"},{en:"mount",zh:"山"},{en:"wish",zh:"希望"},{en:"sky",zh:"天空"},{en:"board",zh:"板"},{en:"joy",zh:"欢乐"},{en:"winter",zh:"冬天"},{en:"written",zh:"书面的"},
+  {en:"wild",zh:"野生的"},{en:"instrument",zh:"工具"},{en:"kept",zh:"保持"},{en:"glass",zh:"玻璃"},{en:"grass",zh:"草"},{en:"job",zh:"工作"},{en:"edge",zh:"边缘"},{en:"sign",zh:"标志"},{en:"visit",zh:"访问"},{en:"past",zh:"过去"},{en:"soft",zh:"柔软的"},{en:"fun",zh:"乐趣"},
+  {en:"bright",zh:"明亮的"},{en:"gas",zh:"气体"},{en:"weather",zh:"天气"},{en:"month",zh:"月"},{en:"million",zh:"百万"},{en:"bear",zh:"熊"},{en:"finish",zh:"完成"},{en:"happy",zh:"快乐的"},{en:"hope",zh:"希望"},{en:"flower",zh:"花"},
+  {en:"strange",zh:"奇怪的"},{en:"gone",zh:"离去的"},{en:"jump",zh:"跳跃"},{en:"baby",zh:"婴儿"},{en:"eight",zh:"八"},{en:"village",zh:"村庄"},{en:"meet",zh:"遇见"},{en:"root",zh:"根"},{en:"buy",zh:"买"},{en:"raise",zh:"举起"},{en:"solve",zh:"解决"},{en:"metal",zh:"金属"},{en:"push",zh:"推"},
+  {en:"seven",zh:"七"},{en:"third",zh:"第三"},{en:"shall",zh:"将要"},{en:"held",zh:"握住"},{en:"hair",zh:"头发"},{en:"describe",zh:"描述"},{en:"cook",zh:"烹饪"},{en:"floor",zh:"地板"},{en:"either",zh:"任一"},{en:"result",zh:"结果"},{en:"burn",zh:"燃烧"},
+  {en:"hill",zh:"山丘"},{en:"safe",zh:"安全的"},{en:"cat",zh:"猫"},{en:"century",zh:"世纪"},{en:"consider",zh:"考虑"},{en:"type",zh:"类型"},{en:"law",zh:"法律"},{en:"bit",zh:"一点"},{en:"coast",zh:"海岸"},{en:"copy",zh:"复制"},{en:"phrase",zh:"短语"},{en:"tall",zh:"高的"},
+  {en:"sand",zh:"沙子"},{en:"soil",zh:"土壤"},{en:"roll",zh:"滚动"},{en:"finger",zh:"手指"},{en:"industry",zh:"工业"},{en:"value",zh:"价值"},{en:"fight",zh:"战斗"},{en:"lie",zh:"躺"},{en:"beat",zh:"击败"},{en:"excite",zh:"使兴奋"},{en:"natural",zh:"自然的"},
+  {en:"view",zh:"视野"},{en:"sense",zh:"感觉"},{en:"ear",zh:"耳朵"},{en:"else",zh:"其他"},{en:"quite",zh:"相当"},{en:"broke",zh:"打破"},{en:"middle",zh:"中间"},{en:"kill",zh:"杀死"},{en:"son",zh:"儿子"},{en:"lake",zh:"湖"},{en:"moment",zh:"时刻"},{en:"scale",zh:"规模"},
+  {en:"loud",zh:"大声的"},{en:"spring",zh:"春天"},{en:"observe",zh:"观察"},{en:"straight",zh:"直的"},{en:"nation",zh:"国家"},{en:"dictionary",zh:"字典"},{en:"milk",zh:"牛奶"},{en:"speed",zh:"速度"},
+  {en:"method",zh:"方法"},{en:"organ",zh:"器官"},{en:"pay",zh:"支付"},{en:"age",zh:"年龄"},{en:"section",zh:"部分"},{en:"dress",zh:"连衣裙"},{en:"cloud",zh:"云"},{en:"surprise",zh:"惊喜"},{en:"quiet",zh:"安静的"},{en:"stone",zh:"石头"},{en:"tiny",zh:"微小的"},{en:"climb",zh:"攀登"},
+  {en:"cool",zh:"凉爽的"},{en:"design",zh:"设计"},{en:"poor",zh:"贫穷的"},{en:"lot",zh:"许多"},{en:"experiment",zh:"实验"},{en:"bottom",zh:"底部"},{en:"key",zh:"钥匙"},{en:"iron",zh:"铁"},{en:"single",zh:"单一的"},{en:"stick",zh:"棍子"},{en:"flat",zh:"平的"},{en:"twenty",zh:"二十"},
+  {en:"skin",zh:"皮肤"},{en:"smile",zh:"微笑"},{en:"hole",zh:"洞"},{en:"trade",zh:"贸易"},{en:"trip",zh:"旅行"},{en:"office",zh:"办公室"},{en:"receive",zh:"接收"},{en:"row",zh:"排"},{en:"mouth",zh:"嘴"},{en:"exact",zh:"精确的"},
+  {en:"symbol",zh:"符号"},{en:"die",zh:"死"},{en:"least",zh:"最少"},{en:"trouble",zh:"麻烦"},{en:"shout",zh:"喊叫"},{en:"except",zh:"除了"},{en:"wrote",zh:"写"},{en:"seed",zh:"种子"},{en:"tone",zh:"音调"},{en:"join",zh:"加入"},{en:"suggest",zh:"建议"},{en:"clean",zh:"干净的"},
+  {en:"break",zh:"打破"},{en:"lady",zh:"女士"},{en:"yard",zh:"院子"},{en:"rise",zh:"上升"},{en:"bad",zh:"坏的"},{en:"blow",zh:"吹"},{en:"oil",zh:"油"},{en:"blood",zh:"血液"},{en:"touch",zh:"触摸"},{en:"cent",zh:"分"},{en:"mix",zh:"混合"},{en:"team",zh:"团队"},{en:"wire",zh:"电线"},
+  {en:"cost",zh:"花费"},{en:"lost",zh:"丢失的"},{en:"brown",zh:"棕色"},{en:"wear",zh:"穿着"},{en:"garden",zh:"花园"},{en:"equal",zh:"相等的"},{en:"sent",zh:"发送"},{en:"choose",zh:"选择"},{en:"fell",zh:"落下"},{en:"fit",zh:"适合"},{en:"flow",zh:"流动"},{en:"fair",zh:"公平的"},{en:"bank",zh:"银行"},
+  {en:"collect",zh:"收集"},{en:"save",zh:"保存"},{en:"control",zh:"控制"},{en:"gentle",zh:"温柔的"},{en:"captain",zh:"船长"},{en:"practice",zh:"练习"},{en:"separate",zh:"分开的"},{en:"difficult",zh:"困难的"},
+  {en:"doctor",zh:"医生"},{en:"please",zh:"请"},{en:"protect",zh:"保护"},{en:"noon",zh:"中午"},{en:"whose",zh:"谁的"},{en:"locate",zh:"定位"},{en:"ring",zh:"戒指"},{en:"character",zh:"角色"},{en:"insect",zh:"昆虫"},{en:"caught",zh:"抓住"},{en:"period",zh:"时期"},
+  {en:"indicate",zh:"表明"},{en:"radio",zh:"收音机"},{en:"spoke",zh:"说话"},{en:"atom",zh:"原子"},{en:"human",zh:"人类"},{en:"history",zh:"历史"},{en:"effect",zh:"效果"},{en:"electric",zh:"电的"},{en:"expect",zh:"期望"},{en:"crop",zh:"庄稼"},{en:"modern",zh:"现代的"},
+  {en:"element",zh:"元素"},{en:"hit",zh:"打击"},{en:"student",zh:"学生"},{en:"corner",zh:"角落"},{en:"party",zh:"派对"},{en:"supply",zh:"供应"},{en:"bone",zh:"骨头"},{en:"rail",zh:"轨道"},{en:"imagine",zh:"想象"},{en:"provide",zh:"提供"},{en:"agree",zh:"同意"},
+  {en:"capital",zh:"首都"},{en:"chair",zh:"椅子"},{en:"danger",zh:"危险"},{en:"fruit",zh:"水果"},{en:"rich",zh:"富有的"},{en:"thick",zh:"厚的"},{en:"soldier",zh:"士兵"},{en:"process",zh:"过程"},{en:"operate",zh:"操作"},{en:"guess",zh:"猜测"},
+  {en:"necessary",zh:"必要的"},{en:"sharp",zh:"锋利的"},{en:"wing",zh:"翅膀"},{en:"create",zh:"创造"},{en:"neighbor",zh:"邻居"},{en:"wash",zh:"洗"},{en:"bat",zh:"蝙蝠"},{en:"rather",zh:"宁愿"},{en:"crowd",zh:"人群"},{en:"corn",zh:"玉米"},{en:"compare",zh:"比较"},
+  {en:"poem",zh:"诗"},{en:"string",zh:"绳子"},{en:"bell",zh:"铃铛"},{en:"depend",zh:"依赖"},{en:"meat",zh:"肉"},{en:"rub",zh:"摩擦"},{en:"tube",zh:"管子"},{en:"famous",zh:"著名的"},{en:"dollar",zh:"美元"},{en:"stream",zh:"溪流"},{en:"fear",zh:"恐惧"},{en:"sight",zh:"视力"},
+  {en:"thin",zh:"薄的"},{en:"triangle",zh:"三角形"},{en:"planet",zh:"行星"},{en:"hurry",zh:"赶快"},{en:"chief",zh:"首领"},{en:"colony",zh:"殖民地"},{en:"clock",zh:"钟"},{en:"mine",zh:"我的"},{en:"tie",zh:"领带"},{en:"enter",zh:"进入"},{en:"major",zh:"主要的"},{en:"fresh",zh:"新鲜的"},
+  {en:"search",zh:"搜索"},{en:"send",zh:"发送"},{en:"yellow",zh:"黄色"},{en:"gun",zh:"枪"},{en:"allow",zh:"允许"},{en:"print",zh:"打印"},{en:"dead",zh:"死的"},{en:"spot",zh:"地点"},{en:"desert",zh:"沙漠"},{en:"suit",zh:"套装"},{en:"current",zh:"当前的"},{en:"lift",zh:"举起"},
+  {en:"rose",zh:"玫瑰"},{en:"continue",zh:"继续"},{en:"block",zh:"街区"},{en:"chart",zh:"图表"},{en:"hat",zh:"帽子"},{en:"sell",zh:"卖"},{en:"success",zh:"成功"},{en:"company",zh:"公司"},{en:"event",zh:"事件"},{en:"particular",zh:"特别的"},
+  {en:"deal",zh:"交易"},{en:"swim",zh:"游泳"},{en:"term",zh:"术语"},{en:"opposite",zh:"相反的"},{en:"wife",zh:"妻子"},{en:"shoe",zh:"鞋子"},{en:"shoulder",zh:"肩膀"},{en:"spread",zh:"传播"},{en:"arrange",zh:"安排"},{en:"camp",zh:"营地"},{en:"invent",zh:"发明"},
+  {en:"cotton",zh:"棉花"},{en:"born",zh:"出生"},{en:"determine",zh:"决定"},{en:"nine",zh:"九"},{en:"truck",zh:"卡车"},{en:"noise",zh:"噪音"},{en:"level",zh:"水平"},{en:"chance",zh:"机会"},{en:"gather",zh:"聚集"},{en:"shop",zh:"商店"},
+  {en:"stretch",zh:"伸展"},{en:"throw",zh:"扔"},{en:"shine",zh:"发光"},{en:"property",zh:"财产"},{en:"column",zh:"列"},{en:"molecule",zh:"分子"},{en:"select",zh:"选择"},{en:"wrong",zh:"错误的"},{en:"gray",zh:"灰色"},{en:"repeat",zh:"重复"},
+  {en:"require",zh:"需要"},{en:"broad",zh:"宽广的"},{en:"prepare",zh:"准备"},{en:"salt",zh:"盐"},{en:"nose",zh:"鼻子"},{en:"plural",zh:"复数"},{en:"anger",zh:"愤怒"},{en:"claim",zh:"声称"},{en:"continent",zh:"大陆"},{en:"oxygen",zh:"氧气"},{en:"sugar",zh:"糖"},
+  {en:"death",zh:"死亡"},{en:"pretty",zh:"漂亮的"},{en:"skill",zh:"技能"},{en:"women",zh:"女人们"},{en:"season",zh:"季节"},{en:"solution",zh:"解决方案"},{en:"magnet",zh:"磁铁"},{en:"silver",zh:"银"},{en:"thank",zh:"感谢"},{en:"branch",zh:"分支"},{en:"match",zh:"匹配"},
+  {en:"especially",zh:"尤其"},{en:"afraid",zh:"害怕的"},{en:"huge",zh:"巨大的"},{en:"sister",zh:"姐妹"},{en:"steel",zh:"钢铁"},{en:"discuss",zh:"讨论"},{en:"forward",zh:"向前"},{en:"similar",zh:"相似的"},
+  {en:"guide",zh:"指南"},{en:"experience",zh:"经验"},{en:"score",zh:"分数"},{en:"apple",zh:"苹果"},{en:"bought",zh:"购买"},{en:"led",zh:"领导"},{en:"pitch",zh:"音高"},{en:"coat",zh:"外套"},{en:"mass",zh:"质量"},{en:"card",zh:"卡片"},{en:"band",zh:"乐队"},
+  {en:"rope",zh:"绳子"},{en:"slip",zh:"滑倒"},{en:"win",zh:"赢"},{en:"dream",zh:"梦想"},{en:"evening",zh:"傍晚"},{en:"condition",zh:"条件"},{en:"feed",zh:"喂养"},{en:"tool",zh:"工具"},{en:"total",zh:"总的"},{en:"basic",zh:"基本的"},{en:"smell",zh:"气味"},
+  {en:"valley",zh:"山谷"},{en:"nor",zh:"也不"},{en:"double",zh:"双倍的"},{en:"seat",zh:"座位"},{en:"arrive",zh:"到达"},{en:"master",zh:"大师"},{en:"track",zh:"轨道"},{en:"parent",zh:"父母"},{en:"shore",zh:"海岸"},{en:"division",zh:"部门"},{en:"sheet",zh:"床单"},
+  {en:"substance",zh:"物质"},{en:"favor",zh:"喜爱"},{en:"connect",zh:"连接"},{en:"post",zh:"邮寄"},{en:"spend",zh:"花费"},{en:"fat",zh:"脂肪"},{en:"glad",zh:"高兴的"},{en:"original",zh:"原始的"},{en:"share",zh:"分享"},{en:"station",zh:"车站"},
+  {en:"dad",zh:"爸爸"},{en:"bread",zh:"面包"},{en:"charge",zh:"收费"},{en:"proper",zh:"适当的"},{en:"bar",zh:"酒吧"},{en:"offer",zh:"提供"},{en:"segment",zh:"部分"},{en:"slave",zh:"奴隶"},{en:"duck",zh:"鸭子"},{en:"instant",zh:"瞬间的"},{en:"market",zh:"市场"},
+  {en:"degree",zh:"程度"},{en:"chick",zh:"小鸡"},{en:"dear",zh:"亲爱的"},{en:"enemy",zh:"敌人"},{en:"reply",zh:"回复"},{en:"drink",zh:"喝"},{en:"occur",zh:"发生"},{en:"support",zh:"支持"},{en:"speech",zh:"演讲"},
+  {en:"nature",zh:"自然"},{en:"range",zh:"范围"},{en:"steam",zh:"蒸汽"},{en:"motion",zh:"运动"},{en:"path",zh:"路径"},{en:"liquid",zh:"液体"},{en:"log",zh:"日志"},{en:"meant",zh:"意味着"},{en:"teeth",zh:"牙齿"},{en:"shell",zh:"壳"},{en:"neck",zh:"脖子"}
+];
+
+const EN_SENTENCE_BANK = [
+  {en:"The only way to do great work is to love what you do.",zh:"成就伟业的唯一途径是热爱你所做的事。"},
+  {en:"Stay hungry, stay foolish.",zh:"求知若饥，虚心若愚。"},
+  {en:"Think different.",zh:"不同凡想。"},
+  {en:"Innovation distinguishes between a leader and a follower.",zh:"创新是领导者和追随者的分水岭。"},
+  {en:"Your time is limited, so don't waste it living someone else's life.",zh:"你的时间有限，不要浪费在过别人的生活上。"},
+  {en:"The best way to predict the future is to create it.",zh:"预测未来的最好方式就是去创造它。"},
+  {en:"It does not matter how slowly you go as long as you do not stop.",zh:"走得慢不要紧，只要你不停止脚步。"},
+  {en:"Success is not final, failure is not fatal: it is the courage to continue that counts.",zh:"成功不是终点，失败也非末日，最重要的是继续前进的勇气。"},
+  {en:"In the middle of every difficulty lies opportunity.",zh:"在每一个困难之中都蕴藏着机遇。"},
+  {en:"The purpose of our lives is to be happy.",zh:"我们生活的目的就是幸福。"},
+  {en:"Life is what happens when you're busy making other plans.",zh:"生活就是在你忙于制定其他计划时发生的事。"},
+  {en:"Get busy living or get busy dying.",zh:"要么忙于生存，要么赶着去死。"},
+  {en:"You only live once, but if you do it right, once is enough.",zh:"人生只有一次，但如果活得精彩，一次足矣。"},
+  {en:"Many of life's failures are people who did not realize how close they were to success.",zh:"许多人生的失败者，是没有意识到自己离成功有多近。"},
+  {en:"The unexamined life is not worth living.",zh:"未经审视的人生不值得过。"},
+  {en:"Turn your wounds into wisdom.",zh:"将伤痛化为智慧。"},
+  {en:"The future belongs to those who believe in the beauty of their dreams.",zh:"未来属于那些相信梦想之美的人。"},
+  {en:"Do what you can, with what you have, where you are.",zh:"在你所处之地，用你所有之物，做你所能之事。"},
+  {en:"Believe you can and you're halfway there.",zh:"相信你可以，你就成功了一半。"},
+  {en:"Everything you've ever wanted is on the other side of fear.",zh:"你想要的一切都在恐惧的彼岸。"},
+  {en:"Courage is not having the strength to go on; it is going on when you don't have the strength.",zh:"勇气不是有力量继续前进，而是在没有力量时仍然前进。"},
+  {en:"It is never too late to be what you might have been.",zh:"成为你想成为的人，永远不嫌晚。"},
+  {en:"The only impossible journey is the one you never begin.",zh:"唯一不可能的旅程，是你从未启程的那一个。"},
+  {en:"Strive not to be a success, but rather to be of value.",zh:"不要努力成为一个成功者，而要努力成为一个有价值的人。"},
+  {en:"We become what we think about.",zh:"我们成为我们所想的那样。"},
+  {en:"Life is really simple, but we insist on making it complicated.",zh:"生活其实很简单，但我们总是把它搞复杂。"},
+  {en:"The mind is everything. What you think you become.",zh:"心即一切。你想什么，就成为什么。"},
+  {en:"Happiness is not something ready made. It comes from your own actions.",zh:"幸福不是现成的东西，它来自你的行动。"},
+  {en:"Peace comes from within. Do not seek it without.",zh:"平静来自内心，不要向外寻求。"},
+  {en:"To conquer oneself is a greater task than conquering others.",zh:"征服自己比征服他人更为伟大。"}
+];
+
+const EN_PASSAGE_BANK = [
+  {title:"The Power of Reading",text:"Reading is one of the most powerful tools we have to expand our knowledge and understanding of the world. When we read, we are not just absorbing words on a page; we are exploring new ideas, visiting distant places, and experiencing lives different from our own. Books allow us to learn from the greatest minds in history without ever leaving our homes. They challenge our assumptions, broaden our perspectives, and inspire us to think more deeply about the world around us. In a fast-paced digital age, taking time to read a good book remains one of the most rewarding habits we can cultivate.",zh:"阅读是我们拓展知识、理解世界最有力的工具之一。当我们阅读时，我们不仅仅是在吸收纸上的文字，更是在探索新的思想、游历远方、体验不同于自己的生活。书籍让我们无需离家就能向历史上最伟大的头脑学习。"},
+  {title:"Morning Routine",text:"Every morning brings a new opportunity to start fresh and make the most of the day ahead. Successful people often attribute their achievements to consistent morning routines that set a positive tone for the hours to come. Whether it is a quiet cup of coffee, a brisk walk in the fresh air, or a few minutes of meditation, these small rituals help center the mind and prepare it for the challenges ahead. The key is not complexity but consistency. A simple routine done every day is far more powerful than an elaborate plan that is rarely followed.",zh:"每个早晨都带来重新开始、充分利用新一天的机会。成功人士常将自己的成就归功于持之以恒的晨间习惯。无论是一杯安静的咖啡、在新鲜空气中快走，还是几分钟的冥想，这些小仪式都能帮助集中思绪。关键不在于复杂，而在于坚持。"},
+  {title:"Technology and Connection",text:"Technology has transformed the way we communicate and connect with one another. In mere seconds, we can send messages across the globe, share moments through photos and videos, and collaborate with people we have never met in person. Yet, as our digital connections multiply, many people report feeling more isolated than ever. The challenge of our time is to harness the power of technology while preserving the depth and authenticity of human relationships.",zh:"科技改变了我们交流和连接的方式。短短几秒内，我们可以向全球发送消息，通过照片和视频分享瞬间，与从未谋面的人协作。然而，随着数字连接的倍增，许多人却感到前所未有的孤独。我们时代的挑战在于利用科技的力量，同时保持人际关系的深度和真实性。"},
+  {title:"Learning a Language",text:"Learning a new language is like opening a door to a different world. It is not merely about memorizing vocabulary and grammar rules; it is about understanding a new way of thinking and expressing ideas. Every language carries within it the history, culture, and worldview of the people who speak it. The journey of language learning teaches patience, humility, and curiosity. Mistakes are not failures but stepping stones toward mastery.",zh:"学习一门新语言就像打开通往另一个世界的大门。它不仅仅是记忆词汇和语法规则，更是理解一种新的思维方式和表达思想的方法。每种语言都承载着使用它的人们的历史、文化和世界观。语言学习的旅程教会我们耐心、谦逊和好奇心。"},
+  {title:"The Art of Focus",text:"In a world filled with constant distractions, the ability to focus deeply on a single task has become a rare and valuable skill. Focus is not about working harder; it is about directing your attention intentionally and protecting it from interruption. When we give our full attention to something, we not only produce better results but also experience a sense of flow that makes the work itself rewarding. Building focus is like building a muscle.",zh:"在这个充满干扰的世界里，深度专注于单一任务的能力已成为一种稀有而宝贵的技能。专注不是更努力地工作，而是有意识地将注意力集中并保护它免受干扰。当我们全神贯注时，不仅能产生更好的结果，还能体验到心流状态。培养专注力就像锻炼肌肉。"}
+];
+
+/* ---------- DATA: CHINESE ---------- */
+
+const ZH_WORD_BANK = [
+  "时间","世界","生活","学习","工作","努力","成功","幸福","快乐","健康",
+  "家庭","朋友","爱情","梦想","希望","未来","现在","过去","明天","今天",
+  "昨天","中国","文化","历史","科学","技术","经济","社会","发展","创新",
+  "教育","环境","自然","艺术","音乐","文学","哲学","思想","智慧","勇气",
+  "坚持","改变","成长","进步","挑战","机遇","选择","方向","目标","计划",
+  "方法","能力","知识","经验","态度","习惯","性格","品质","价值","意义",
+  "自由","平等","公正","法治","民主","文明","和谐","美丽","温暖","阳光",
+  "春天","夏天","秋天","冬天","早晨","傍晚","深夜","黎明","星空","大海",
+  "山川","河流","森林","草原","花朵","树木","动物","生命","宇宙","地球",
+  "心灵","精神","情感","记忆","思念","感动","理解","信任","尊重","包容",
+  "微笑","眼泪","声音","目光","脚步","旅程","故事","梦想","青春","岁月",
+  "和平","战争","贫穷","富贵","疾病","医疗","饮食","运动","休息","睡眠",
+  "阅读","写作","思考","交流","沟通","合作","竞争","胜利","失败","挫折",
+  "善良","真诚","勇敢","坚强","温柔","细腻","热情","冷静","幽默","风趣",
+  "简单","复杂","平凡","伟大","渺小","浩瀚","短暂","永恒","瞬间","永远",
+  "城市","乡村","街道","建筑","灯光","夜色","风景","旅行","探索","发现",
+  "老师","学生","医生","护士","工人","农民","军人","警察","科学家","艺术家",
+  "手机","电脑","网络","数据","信息","程序","软件","硬件","人工智能","机器人",
+  "天空","白云","微风","细雨","彩虹","闪电","雷声","雪花","冰霜","露珠"
+];
+
+const ZH_SENTENCE_BANK = [
+  "千里之行，始于足下。","学而不思则罔，思而不学则殆。","三人行，必有我师焉。",
+  "己所不欲，勿施于人。","不积跬步，无以至千里；不积小流，无以成江海。",
+  "人生自古谁无死，留取丹心照汗青。","天行健，君子以自强不息。",
+  "宝剑锋从磨砺出，梅花香自苦寒来。","书山有路勤为径，学海无涯苦作舟。",
+  "少壮不努力，老大徒伤悲。","一寸光阴一寸金，寸金难买寸光阴。",
+  "路漫漫其修远兮，吾将上下而求索。","海内存知己，天涯若比邻。",
+  "山重水复疑无路，柳暗花明又一村。","不识庐山真面目，只缘身在此山中。",
+  "问渠那得清如许，为有源头活水来。","纸上得来终觉浅，绝知此事要躬行。",
+  "莫愁前路无知己，天下谁人不识君。","长风破浪会有时，直挂云帆济沧海。",
+  "天生我材必有用，千金散尽还复来。","会当凌绝顶，一览众山小。",
+  "采菊东篱下，悠然见南山。","大漠孤烟直，长河落日圆。",
+  "落霞与孤鹜齐飞，秋水共长天一色。","不以物喜，不以己悲。",
+  "先天下之忧而忧，后天下之乐而乐。","业精于勤荒于嬉，行成于思毁于随。",
+  "博学之，审问之，慎思之，明辨之，笃行之。"
+];
+
+const ZH_PASSAGE_BANK = [
+  {title:"匆匆",text:"燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？是有人偷了他们吧，那是谁？又藏在何处呢？是他们自己逃走了吧，现在又到了哪里呢？我不知道他们给了我多少日子，但我的手确乎是渐渐空虚了。"},
+  {title:"春",text:"盼望着，盼望着，东风来了，春天的脚步近了。一切都像刚睡醒的样子，欣欣然张开了眼。山朗润起来了，水涨起来了，太阳的脸红起来了。小草偷偷地从土里钻出来，嫩嫩的，绿绿的。园子里，田野里，瞧去，一大片一大片满是的。坐着，躺着，打两个滚，踢几脚球，赛几趟跑，捉几回迷藏。"},
+  {title:"背影（节选）",text:"我看见他戴着黑布小帽，穿着黑布大马褂，深青布棉袍，蹒跚地走到铁道边，慢慢探身下去，尚不大难。可是他穿过铁道，要爬上那边月台，就不容易了。他用两手攀着上面，两脚再向上缩；他肥胖的身子向左微倾，显出努力的样子。这时我看见他的背影，我的泪很快地流下来了。"},
+  {title:"荷塘月色（节选）",text:"曲曲折折的荷塘上面，弥望的是田田的叶子。叶子出水很高，像亭亭的舞女的裙。层层的叶子中间，零星地点缀着些白花，有袅娜地开着的，有羞涩地打着朵儿的；正如一粒粒的明珠，又如碧天里的星星，又如刚出浴的美人。微风过处，送来缕缕清香，仿佛远处高楼上渺茫的歌声似的。"},
+  {title:"故都的秋（节选）",text:"秋天，无论在什么地方的秋天，总是好的；可是啊，北国的秋，却特别地来得清，来得静，来得悲凉。我的不远千里，要从杭州赶上青岛，更要从青岛赶上北平来的理由，也不过想饱尝一尝这秋，这故都的秋味。江南，秋当然也是有的；但草木凋得慢，空气来得润，天的颜色显得淡。"}
+];
+
+/* ---------- STATE ---------- */
+
+const state = {
+  lang:'en',mode:'words',targetChars:[],currentIndex:0,
+  totalTyped:0,errors:0,errorCount:0,errorPositions:new Set(),
+  startTime:null,timerInterval:null,elapsedSeconds:0,
+  finished:false,darkMode:false,isComposing:false
+};
+
+/* ---------- DOM REFS ---------- */
+
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+
+const dom={
+  typingText:$('#typingText'),focusHint:$('#focusHint'),imeHint:$('#imeHint'),
+  hiddenInput:$('#hiddenInput'),timer:$('#timer'),wpm:$('#wpm'),speedLabel:$('#speedLabel'),
+  accuracy:$('#accuracy'),progressPct:$('#progressPct'),progressBar:$('#progressBar'),
+  segmentControl:$('#segmentControl'),langToggle:$('#langToggle'),
+  keyboardWrap:$('#keyboardWrap'),keyboard:$('#keyboard'),darkToggle:$('#darkToggle'),
+  overlay:$('#overlay'),finalTime:$('#finalTime'),finalWpm:$('#finalWpm'),
+  finalSpeedLabel:$('#finalSpeedLabel'),finalAccuracy:$('#finalAccuracy'),
+  bestRecord:$('#bestRecord'),retryBtn:$('#retryBtn'),changeModeBtn:$('#changeModeBtn'),
+  overlayBg:$('#overlayBg')
+};
+
+/* ---------- KEYBOARD ---------- */
+
+const KEYBOARD_ROWS=[
+  ['`','1','2','3','4','5','6','7','8','9','0','-','=',{label:'⌫',wide:true}],
+  [{label:'Tab',wider:true},'q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  [{label:'Caps',wider:true},'a','s','d','f','g','h','j','k','l',';','\'',{label:'Enter',wide:true}],
+  [{label:'Shift',wide:true},'z','x','c','v','b','n','m',',','.','/',{label:'Shift',wide:true}],
+  [{label:' ',isSpace:true}]
+];
+
+function buildKeyboard(){
+  const f=document.createDocumentFragment();
+  KEYBOARD_ROWS.forEach(row=>{
+    const rd=document.createElement('div');rd.className='keyboard-row';
+    row.forEach(k=>{
+      const kd=document.createElement('div');kd.className='key';
+      if(typeof k==='string'){kd.dataset.key=k.toLowerCase();kd.textContent=k}
+      else{if(k.wide)kd.classList.add('wide');if(k.wider)kd.classList.add('wider');if(k.isSpace)kd.classList.add('space-bar');kd.dataset.key=k.label===' '?' ':k.label.toLowerCase();kd.textContent=k.label}
+      rd.appendChild(kd);
+    });
+    f.appendChild(rd);
+  });
+  dom.keyboard.innerHTML='';dom.keyboard.appendChild(f);
+}
+
+function getKeyboardKey(k){
+  const m={Backspace:'⌫',Delete:'⌫',Tab:'tab',CapsLock:'caps',Enter:'enter',Shift:'shift',ShiftLeft:'shift',ShiftRight:'shift',' ':' '};
+  return (m[k]!==undefined?m[k]:k).toLowerCase();
+}
+
+function highlightKey(key,type){
+  if(state.lang==='zh')return;
+  const n=getKeyboardKey(key);
+  const el=dom.keyboard.querySelector(`[data-key="${CSS.escape(n)}"]`);
+  if(!el)return;
+  el.classList.remove('hit-correct','hit-error','pressed');void el.offsetWidth;
+  el.classList.add('pressed');
+  if(type==='correct')el.classList.add('hit-correct');
+  if(type==='error')el.classList.add('hit-error');
+  setTimeout(()=>el.classList.remove('hit-correct','hit-error','pressed'),200);
+}
+
+function updateKeyboardVisibility(){dom.keyboardWrap.classList.toggle('hidden',state.lang==='zh')}
+
+/* ---------- CONTENT GENERATION ---------- */
+
+function shuffleArray(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+let currentTranslation='',currentWordList=[],wordBoundaries=[];
+
+function generateEnWords(){
+  const s=shuffleArray(EN_WORD_BANK);currentWordList=s.slice(0,20);
+  const words=currentWordList.map(w=>w.en);const text=words.join(' ');
+  wordBoundaries=[];let p=0;
+  for(let i=0;i<words.length;i++){wordBoundaries.push([p,p+words[i].length]);p+=words[i].length+1}
+  return text.split('');
+}
+function generateZhWords(){currentWordList=[];wordBoundaries=[];const s=shuffleArray(ZH_WORD_BANK);return s.slice(0,20).join('，').split('')}
+function generateEnSentence(){const i=EN_SENTENCE_BANK[Math.floor(Math.random()*EN_SENTENCE_BANK.length)];currentTranslation=i.zh;return i.en.split('')}
+function generateZhSentence(){currentTranslation='';return ZH_SENTENCE_BANK[Math.floor(Math.random()*ZH_SENTENCE_BANK.length)].split('')}
+function generateEnPassage(){const i=EN_PASSAGE_BANK[Math.floor(Math.random()*EN_PASSAGE_BANK.length)];currentTranslation=i.zh;return i.text.split('')}
+function generateZhPassage(){currentTranslation='';return ZH_PASSAGE_BANK[Math.floor(Math.random()*ZH_PASSAGE_BANK.length)].text.split('')}
+
+function generateContent(){
+  if(state.lang==='en'){switch(state.mode){case'words':return generateEnWords();case'sentences':return generateEnSentence();case'passages':return generateEnPassage();default:return generateEnWords()}}
+  else{switch(state.mode){case'words':return generateZhWords();case'sentences':return generateZhSentence();case'passages':return generateZhPassage();default:return generateZhWords()}}
+}
+
+function renderTranslation(){
+  const el=$('#translationArea');
+  if(state.lang==='en'){
+    if((state.mode==='sentences'||state.mode==='passages')&&currentTranslation){el.innerHTML=`<div class="translation-label">中文翻译</div>${currentTranslation}`;el.classList.add('visible');return}
+    if(state.mode==='words'&&currentWordList.length>0){
+      let wi=-1;
+      for(let i=0;i<wordBoundaries.length;i++){const[s,e]=wordBoundaries[i];if(state.currentIndex>=s&&state.currentIndex<e){wi=i;break}}
+      if(wi===-1){for(let i=0;i<wordBoundaries.length;i++){if(state.currentIndex<wordBoundaries[i][0]){wi=i;break}}}
+      if(wi>=0&&wi<currentWordList.length){const w=currentWordList[wi];el.innerHTML=`<div class="translation-label">单词翻译</div><strong>${w.en}</strong> — ${w.zh}`;el.classList.add('visible');return}
+    }
+  }
+  el.innerHTML='';el.classList.remove('visible');
+}
+
+/* ---------- RENDER ---------- */
+
+function renderTypingText(){
+  const chars=state.targetChars;let html='';
+  for(let i=0;i<chars.length;i++){
+    let ch=chars[i],cls='char pending',disp=ch;
+    if(i<state.currentIndex)cls=state.errorPositions.has(i)?'char error':'char correct';
+    else if(i===state.currentIndex)cls='char current';
+    if(disp==='<')disp='&lt;';if(disp==='>')disp='&gt;';if(disp==='&')disp='&amp;';if(disp===' ')disp='&nbsp;';
+    html+=`<span class="${cls}">${disp}</span>`;
+  }
+  dom.typingText.innerHTML=html;dom.typingText.className='typing-text';
+  if(state.mode==='words')dom.typingText.classList.add('words-mode');
+}
+
+/* ---------- STATS ---------- */
+
+function startTimer(){if(state.startTime)return;state.startTime=Date.now();state.timerInterval=setInterval(updateStats,200);dom.focusHint.style.opacity='0'}
+function stopTimer(){if(state.timerInterval){clearInterval(state.timerInterval);state.timerInterval=null}updateStats()}
+
+function updateStats(){
+  const e=state.startTime?Math.floor((Date.now()-state.startTime)/1000):0;state.elapsedSeconds=e;
+  const m=Math.floor(e/60),s=e%60;dom.timer.textContent=m>0?`${m}m ${s}s`:`${s}s`;
+  const cc=state.currentIndex-state.errorCount,min=Math.max(e/60,0.01);
+  if(state.lang==='en'){dom.wpm.textContent=Math.max(0,Math.round((cc/5)/min));dom.speedLabel.textContent='WPM'}
+  else{dom.wpm.textContent=Math.max(0,Math.round(cc/min));dom.speedLabel.textContent='CPM'}
+  const tt=state.totalTyped,acc=tt>0?Math.round(((tt-state.errors)/tt)*100):100;dom.accuracy.textContent=acc+'%';
+  const tot=state.targetChars.length,prog=tot>0?Math.round((state.currentIndex/tot)*100):0;
+  dom.progressPct.textContent=prog+'%';dom.progressBar.style.width=prog+'%';
+}
+
+/* ---------- RESULT ---------- */
+
+function getBestKey(){return`typeflow_best_${state.lang==='en'?'wpm':'cpm'}`}
+function getBest(){try{return parseInt(localStorage.getItem(getBestKey())||'0',10)}catch{return 0}}
+function saveBest(v){try{const b=getBest();if(v>b){localStorage.setItem(getBestKey(),v.toString());return true}return false}catch{return false}}
+
+function showResult(){
+  stopTimer();state.finished=true;clearTextarea();
+  const e=state.elapsedSeconds,m=Math.floor(e/60),s=e%60,ts=m>0?`${m}m ${s}s`:`${s}s`;
+  const cc=state.currentIndex-state.errorCount,min=Math.max(e/60,0.01);
+  let fs;if(state.lang==='en'){fs=Math.round((cc/5)/min);dom.finalSpeedLabel.textContent='WPM'}else{fs=Math.round(cc/min);dom.finalSpeedLabel.textContent='CPM'}
+  fs=Math.max(0,fs);
+  const tt=state.totalTyped,acc=tt>0?Math.round(((tt-state.errors)/tt)*100):100;
+  dom.finalTime.textContent=ts;dom.finalWpm.textContent=fs;dom.finalAccuracy.textContent=acc+'%';
+  animateNumber(dom.finalWpm,fs);animateNumber(dom.finalAccuracy,acc,'%');
+  const isNew=saveBest(fs),cur=getBest(),label=state.lang==='en'?'WPM':'CPM';
+  if(isNew)dom.bestRecord.innerHTML=`🏆 <span>新纪录！</span>最高 ${label}: ${cur}`;
+  else if(cur>0)dom.bestRecord.innerHTML=`历史最高 ${label}: <span>${cur}</span>`;
+  else dom.bestRecord.innerHTML='';
+  dom.overlay.classList.add('show');
+}
+function hideResult(){dom.overlay.classList.remove('show')}
+
+function animateNumber(el,target,suffix=''){
+  const start=parseInt(el.textContent,10)||0,dur=600,st=performance.now();
+  function step(now){const e=now-st,p=Math.min(e/dur,1),ed=1-Math.pow(1-p,3);el.textContent=Math.round(start+(target-start)*ed)+suffix;if(p<1)requestAnimationFrame(step)}
+  requestAnimationFrame(step);
+}
+
+/* ---------- INPUT HANDLING ---------- */
+
+let prevTextareaValue='';
+function clearTextarea(){dom.hiddenInput.value='';prevTextareaValue=''}
+
+function handleTextareaInput(){
+  if(state.finished)return;
+  const nv=dom.hiddenInput.value,ov=prevTextareaValue;
+  // During IME composition (ZH mode), wait for compositionend to process the committed text.
+  // Do NOT consume the composing preview here.
+  if(state.isComposing&&state.lang==='zh')return;
+  // Detect backspace
+  if(nv.length<ov.length){const d=ov.length-nv.length;for(let i=0;i<d;i++)handleBackspace();prevTextareaValue=nv;return}
+  // Detect new characters
+  if(nv.length>ov.length){
+    const added=nv.slice(ov.length);
+    if(nv.startsWith(ov)){if(!state.startTime)startTimer();for(const c of added){if(state.finished)break;processCharInput(c)}}
+    else{const cl=commonPrefix(ov,nv);for(let i=0;i<ov.length-cl;i++)handleBackspace();if(!state.startTime)startTimer();for(const c of nv.slice(cl)){if(state.finished)break;processCharInput(c)}}
+    prevTextareaValue=nv;
+  }
+}
+function commonPrefix(a,b){let i=0;while(i<a.length&&i<b.length&&a[i]===b[i])i++;return i}
+
+function processCharInput(char){
+  const t=state.targetChars[state.currentIndex];state.totalTyped++;
+  if(char===t)state.currentIndex++;
+  else{state.errors++;state.errorCount++;state.errorPositions.add(state.currentIndex);state.currentIndex++}
+  renderTypingText();renderTranslation();updateStats();
+  if(state.currentIndex>=state.targetChars.length)showResult();
+}
+function handleBackspace(){
+  if(state.currentIndex<=0)return;state.currentIndex--;state.totalTyped=Math.max(0,state.totalTyped-1);
+  if(state.errorPositions.has(state.currentIndex)){state.errorPositions.delete(state.currentIndex);state.errorCount=Math.max(0,state.errorCount-1);state.errors=Math.max(0,state.errors-1)}
+  renderTypingText();renderTranslation();updateStats();
+}
+
+/* ---------- KEYDOWN for virtual keyboard highlight ---------- */
+
+function handleKeydown(e){
+  if(state.finished||state.lang!=='en')return;
+  const k=e.key;
+  if(['Shift','Control','Alt','Meta','CapsLock','Tab','Escape'].includes(k))return;
+  if(k.startsWith('F')&&k.length<=3&&!isNaN(k.slice(1)))return;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].includes(k))return;
+  if(k==='Backspace'||k==='Delete'){highlightKey('Backspace','');return}
+  if(k.length!==1)return;
+  const t=state.targetChars[state.currentIndex];
+  highlightKey(k,k===t?'correct':'error');
+}
+
+/* ---------- IME COMPOSITION ---------- */
+
+function handleCompositionStart(){
+  // Only track composition in Chinese mode; EN mode handles chars via input events
+  if(state.finished||state.lang!=='zh')return;
+  state.isComposing=true;dom.imeHint.classList.add('visible');
+}
+
+function handleCompositionUpdate(){
+  // Preview only: the composing text (e.g. pinyin) must NOT be consumed.
+  // prevTextareaValue keeps the pre-composition value so the commit diff is exact.
+}
+
+function handleCompositionEnd(e){
+  state.isComposing=false;dom.imeHint.classList.remove('visible');
+  if(state.finished)return;
+  if(state.lang!=='zh'){
+    // EN mode: characters arrive via input events; just resync the baseline
+    prevTextareaValue=dom.hiddenInput.value;
+    return;
+  }
+  const ov=prevTextareaValue;
+  const committed=(e&&typeof e.data==='string')?e.data:null;
+  let nv;
+  if(committed!==null){
+    // Chrome commits the textarea value AFTER compositionend, Firefox BEFORE it.
+    // Processing e.data here covers both orders: any input event that follows
+    // will match prevTextareaValue and become a no-op.
+    if(committed.length>0){
+      if(!state.startTime)startTimer();
+      for(const c of committed){if(state.finished)break;processCharInput(c)}
+    }
+    nv=ov+committed;
+  }else{
+    // No data available: fall back to diffing the textarea value
+    nv=dom.hiddenInput.value;
+    if(nv!==ov){
+      if(nv.length>ov.length&&nv.startsWith(ov)){if(!state.startTime)startTimer();for(const c of nv.slice(ov.length)){if(state.finished)break;processCharInput(c)}}
+      else if(nv.length<ov.length){for(let i=0;i<ov.length-nv.length;i++)handleBackspace()}
+      else{const cl=commonPrefix(ov,nv);for(let i=0;i<ov.length-cl;i++)handleBackspace();if(!state.startTime)startTimer();for(const c of nv.slice(cl)){if(state.finished)break;processCharInput(c)}}
+    }
+  }
+  prevTextareaValue=nv;
+}
+
+/* ---------- INIT / RESET ---------- */
+
+function resetState(){
+  stopTimer();state.targetChars=generateContent();state.currentIndex=0;
+  state.totalTyped=0;state.errors=0;state.errorCount=0;state.errorPositions=new Set();
+  state.startTime=null;state.elapsedSeconds=0;state.finished=false;state.isComposing=false;
+  dom.imeHint.classList.remove('visible');clearTextarea();
+}
+function resetUI(){
+  dom.timer.textContent='0s';dom.wpm.textContent='0';dom.speedLabel.textContent=state.lang==='en'?'WPM':'CPM';
+  dom.accuracy.textContent='100%';dom.progressPct.textContent='0%';dom.progressBar.style.width='0%';
+  dom.focusHint.style.opacity='1';renderTypingText();renderTranslation();hideResult();updateKeyboardVisibility();
+}
+function initExercise(){resetState();resetUI();dom.hiddenInput.focus()}
+
+/* ---------- SWITCHING ---------- */
+
+function switchMode(mode){if(state.mode===mode)return;state.mode=mode;$$('.segment-item').forEach(e=>e.classList.toggle('active',e.dataset.mode===mode));initExercise()}
+
+function switchLang(lang){
+  if(state.lang===lang)return;
+  state.lang=lang;
+  $$('.lang-item').forEach(e=>e.classList.toggle('active',e.dataset.lang===lang));
+  // Update textarea lang attribute for mobile keyboard
+  dom.hiddenInput.setAttribute('lang',lang==='zh'?'zh-CN':'en');
+  updateKeyboardVisibility();initExercise();
+}
+
+/* ---------- DARK MODE ---------- */
+
+function toggleDarkMode(){
+  state.darkMode=!state.darkMode;document.documentElement.classList.toggle('dark',state.darkMode);
+  dom.darkToggle.textContent=state.darkMode?'☀️':'🌙';
+  try{localStorage.setItem('typeflow_dark_mode',state.darkMode?'1':'0')}catch{}
+}
+function loadDarkMode(){
+  try{if(localStorage.getItem('typeflow_dark_mode')==='1'){state.darkMode=true;document.documentElement.classList.add('dark');dom.darkToggle.textContent='☀️'}}catch{}
+}
+
+/* ---------- EVENTS ---------- */
+
+function bindEvents(){
+  dom.hiddenInput.addEventListener('input',handleTextareaInput);
+  dom.hiddenInput.addEventListener('compositionstart',handleCompositionStart);
+  dom.hiddenInput.addEventListener('compositionupdate',handleCompositionUpdate);
+  dom.hiddenInput.addEventListener('compositionend',handleCompositionEnd);
+  dom.hiddenInput.addEventListener('keydown',handleKeydown);
+  dom.hiddenInput.addEventListener('blur',()=>{setTimeout(()=>{if(!state.finished)dom.hiddenInput.focus()},100)});
+
+  const card=dom.typingText.parentElement;
+  card.addEventListener('click',e=>{e.preventDefault();dom.hiddenInput.focus()});
+  card.addEventListener('touchstart',()=>{setTimeout(()=>{if(!state.finished)dom.hiddenInput.focus()},50)},{passive:true});
+
+  dom.langToggle.addEventListener('click',e=>{const i=e.target.closest('.lang-item');if(i&&i.dataset.lang)switchLang(i.dataset.lang)});
+  dom.segmentControl.addEventListener('click',e=>{const i=e.target.closest('.segment-item');if(i&&i.dataset.mode)switchMode(i.dataset.mode)});
+  dom.darkToggle.addEventListener('click',toggleDarkMode);
+  dom.retryBtn.addEventListener('click',()=>{hideResult();initExercise()});
+  dom.changeModeBtn.addEventListener('click',()=>{hideResult();const m=['words','sentences','passages'];switchMode(m[(m.indexOf(state.mode)+1)%m.length])});
+  dom.overlayBg.addEventListener('click',hideResult);
+  document.addEventListener('click',e=>{
+    if(state.finished)return;if(e.target.closest('#overlay'))return;
+    if(e.target.closest('.lang-toggle')||e.target.closest('.segment-control')||e.target.closest('.dark-toggle'))return;
+    if(document.activeElement!==dom.hiddenInput)dom.hiddenInput.focus();
+  });
+}
+
+/* ---------- INIT ---------- */
+
+function init(){buildKeyboard();updateKeyboardVisibility();loadDarkMode();bindEvents();initExercise()}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
